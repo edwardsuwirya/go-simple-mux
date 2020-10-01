@@ -1,0 +1,9 @@
+{
+  "ignore": [
+    ".git",
+    ".idea",
+    ".gitignore"
+  ],
+  "verbose": true,
+  "ext": "go,json,mod"
+}
