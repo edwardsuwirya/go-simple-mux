@@ -3,10 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
+	guuid "github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"gosimplemux/appHttpParser"
 	"gosimplemux/appHttpResponse"
+	"gosimplemux/appMiddleware"
 	"gosimplemux/appStatus"
 	"log"
 	"net/http"
@@ -20,6 +22,9 @@ type User struct {
 
 var responder = appHttpResponse.NewJSONResponder()
 var jsonParser = appHttpParser.NewJsonParser()
+var tokenValidationMiddleware = appMiddleware.NewTokenValidationMiddleware()
+var cookieStore = tokenValidationMiddleware.GetCookieStore()
+
 var users = []User{
 	{
 		Id:        "c01d7cf6-ec3f-47f0-9556-a5d6e9009a43",
@@ -36,10 +41,6 @@ func userPostRoute(w http.ResponseWriter, r *http.Request) {
 	var newUser User
 	if err := jsonParser.Parse(r, &newUser); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	if isAuth, ok := session.Values["authenticated"].(bool); !isAuth || !ok {
-		http.Error(w, "", http.StatusUnauthorized)
 		return
 	}
 	id := guuid.New()
@@ -94,11 +95,12 @@ func userDeleteRoute(w http.ResponseWriter, r *http.Request) {
 
 }
 func authRoute(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, "app-cookie")
-	store.Options = &sessions.Options{
+	session, _ := cookieStore.Get(r, "app-cookie")
+	cookieStore.Options = &sessions.Options{
 		MaxAge:   60 * 1,
 		HttpOnly: true,
 	}
+	//Ada mekanisme cek user name & password
 	session.Values["authenticated"] = true
 	err := session.Save(r, w)
 	if err != nil {
@@ -106,18 +108,14 @@ func authRoute(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func authLogoutRoute(w http.ResponseWriter, r *http.Request) {
-	session, _ := store.Get(r, "app-cookie")
+	session, _ := cookieStore.Get(r, "app-cookie")
 	session.Values["authenticated"] = false
 	session.Options.MaxAge = -1
 	err := session.Save(r, w)
-	fmt.Println(session.Values)
 	if err != nil {
 		log.Fatalln(err)
 	}
 }
-
-var responder = appHttpResponse.NewJSONResponder()
-var store = sessions.NewCookieStore([]byte("rahasia..."))
 
 func main() {
 	hostPtr := flag.String("host", "localhost", "Listening on host")
@@ -125,14 +123,16 @@ func main() {
 	flag.Parse()
 
 	r := mux.NewRouter()
-	r.HandleFunc("/user", userRoute).Methods("GET")
-	r.HandleFunc("/user", userPostRoute).Methods("POST")
-	r.HandleFunc("/user", userPutRoute).Methods("PUT")
-	r.HandleFunc("/user", userDeleteRoute).Methods("DELETE")
-	r.HandleFunc("/user/{id}", userRoute).Methods("GET")
+	r.HandleFunc("/login", authRoute).Methods("POST")
+	r.HandleFunc("/logout", authLogoutRoute).Methods("GET")
 
-	r.HandleFunc("/login", authRoute)
-	r.HandleFunc("/logout", authLogoutRoute)
+	userRouter := r.PathPrefix("/user").Subrouter()
+	userRouter.Use(tokenValidationMiddleware.Validate)
+	userRouter.HandleFunc("", userRoute).Methods("GET")
+	userRouter.HandleFunc("", userPostRoute).Methods("POST")
+	userRouter.HandleFunc("", userPutRoute).Methods("PUT")
+	userRouter.HandleFunc("", userDeleteRoute).Methods("DELETE")
+	userRouter.HandleFunc("/{id}", userRoute).Methods("GET")
 
 	h := fmt.Sprintf("%s:%s", *hostPtr, *portPtr)
 	log.Println("Listening on", h)
