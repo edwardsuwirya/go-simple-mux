@@ -5,7 +5,6 @@ import (
 	"fmt"
 	guuid "github.com/google/uuid"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
 	"gosimplemux/appHttpParser"
 	"gosimplemux/appHttpResponse"
 	"gosimplemux/appMiddleware"
@@ -23,6 +22,7 @@ type User struct {
 var responder = appHttpResponse.NewJSONResponder()
 var jsonParser = appHttpParser.NewJsonParser()
 var tokenValidationMiddleware = appMiddleware.NewTokenValidationMiddleware()
+var logRequestMiddleware = appMiddleware.NewLogRequestMiddleware()
 var cookieStore = tokenValidationMiddleware.GetCookieStore()
 
 var users = []User{
@@ -96,10 +96,6 @@ func userDeleteRoute(w http.ResponseWriter, r *http.Request) {
 }
 func authRoute(w http.ResponseWriter, r *http.Request) {
 	session, _ := cookieStore.Get(r, "app-cookie")
-	cookieStore.Options = &sessions.Options{
-		MaxAge:   60 * 1,
-		HttpOnly: true,
-	}
 	//Ada mekanisme cek user name & password
 	session.Values["authenticated"] = true
 	err := session.Save(r, w)
@@ -123,11 +119,13 @@ func main() {
 	flag.Parse()
 
 	r := mux.NewRouter()
+	r.Use(logRequestMiddleware.Log)
 	r.HandleFunc("/login", authRoute).Methods("POST")
 	r.HandleFunc("/logout", authLogoutRoute).Methods("GET")
 
 	userRouter := r.PathPrefix("/user").Subrouter()
 	userRouter.Use(tokenValidationMiddleware.Validate)
+
 	userRouter.HandleFunc("", userRoute).Methods("GET")
 	userRouter.HandleFunc("", userPostRoute).Methods("POST")
 	userRouter.HandleFunc("", userPutRoute).Methods("PUT")

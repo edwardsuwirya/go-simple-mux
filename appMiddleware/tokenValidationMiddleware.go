@@ -3,6 +3,7 @@ package appMiddleware
 import (
 	"github.com/gorilla/sessions"
 	"net/http"
+	"time"
 )
 
 type TokenValidationMiddleware struct {
@@ -11,6 +12,7 @@ type TokenValidationMiddleware struct {
 
 func NewTokenValidationMiddleware() *TokenValidationMiddleware {
 	var store = sessions.NewCookieStore([]byte("rahasia..."))
+	store.MaxAge(int(10 * time.Second))
 	return &TokenValidationMiddleware{store}
 }
 
