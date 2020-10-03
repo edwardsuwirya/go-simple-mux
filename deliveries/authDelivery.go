@@ -7,6 +7,11 @@ import (
 	"net/http"
 )
 
+const (
+	loginRoute  = "/login"
+	logoutRoute = "/logout"
+)
+
 type AuthDelivery struct {
 	router      *mux.Router
 	cookieStore *sessions.CookieStore
@@ -16,9 +21,9 @@ func NewAuthDelivery(r *mux.Router, c *sessions.CookieStore) *AuthDelivery {
 	return &AuthDelivery{r, c}
 }
 
-func (d *AuthDelivery) InitRoute() {
-	d.router.HandleFunc("/login", d.authRoute).Methods("POST")
-	d.router.HandleFunc("/logout", d.authLogoutRoute).Methods("GET")
+func (d *AuthDelivery) InitRoute(mdw ...mux.MiddlewareFunc) {
+	d.router.HandleFunc(loginRoute, d.authRoute).Methods("POST")
+	d.router.HandleFunc(logoutRoute, d.authLogoutRoute).Methods("GET")
 }
 
 func (d *AuthDelivery) authRoute(w http.ResponseWriter, r *http.Request) {
