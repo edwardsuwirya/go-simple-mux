@@ -9,10 +9,8 @@ type TokenValidationMiddleware struct {
 	Store *sessions.CookieStore
 }
 
-func NewTokenValidationMiddleware() *TokenValidationMiddleware {
-	var store = sessions.NewCookieStore([]byte("rahasia..."))
-	store.MaxAge(60)
-	return &TokenValidationMiddleware{store}
+func NewTokenValidationMiddleware(cs *sessions.CookieStore) *TokenValidationMiddleware {
+	return &TokenValidationMiddleware{cs}
 }
 
 func (v *TokenValidationMiddleware) Validate(next http.Handler) http.Handler {
