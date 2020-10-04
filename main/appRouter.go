@@ -3,12 +3,12 @@ package main
 import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
-	"gosimplemux/appCookieStore"
-	"gosimplemux/appHttpParser"
-	"gosimplemux/appHttpResponse"
 	"gosimplemux/appMiddleware"
+	"gosimplemux/appUtils/appCookieStore"
+	"gosimplemux/appUtils/appHttpParser"
+	"gosimplemux/appUtils/appHttpResponse"
 	"gosimplemux/deliveries"
-	"gosimplemux/useCases"
+	"gosimplemux/manager"
 )
 
 type appRouter struct {
@@ -27,7 +27,7 @@ type appRoutes struct {
 
 func (ar *appRouter) InitMainRouter() {
 	ar.app.router.Use(ar.logRequestMiddleware.Log)
-	var serviceManager = useCases.NewServiceManger()
+	var serviceManager = manager.NewServiceManger()
 	appRoutes := []appRoutes{
 		{
 			del: deliveries.NewAuthDelivery(ar.app.router, ar.cookieStore),

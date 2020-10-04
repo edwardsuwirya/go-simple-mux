@@ -1,65 +1,39 @@
 package useCases
 
 import (
-	guuid "github.com/google/uuid"
 	"gosimplemux/models"
+	"gosimplemux/repositories"
 )
 
-var users = []models.User{
-	{
-		Id:        "c01d7cf6-ec3f-47f0-9556-a5d6e9009a43",
-		FirstName: "Edi",
-		LastName:  "Uchida",
-	},
-}
-
 type IUserUseCase interface {
-	Create(newUser *models.User)
-	GetAll() []models.User
-	Delete(id string)
-	Update(id string, newUser *models.User) *models.User
+	Register(newUser *models.User) error
+	GetUserInfo(id string) *models.User
+	Unregister(id string) error
+	UpdateInfo(id string, newUser *models.User) error
 }
 
 type UserUseCase struct {
+	userRepo repositories.UserRepository
 }
 
-func NewUserUseCase() IUserUseCase {
-	return &UserUseCase{}
-}
-
-func (uc *UserUseCase) Create(newUser *models.User) {
-	id := guuid.New()
-	newUser.Id = id.String()
-	users = append(users, *newUser)
-}
-
-func (uc *UserUseCase) GetAll() []models.User {
-	return users
-}
-
-func (uc *UserUseCase) Update(id string, newUser *models.User) *models.User {
-	var userUpdate models.User
-	var userIdx int
-	for idx, usr := range users {
-		if usr.Id == id {
-			userUpdate = usr
-			userIdx = idx
-			break
-		}
+func NewUserUseCase(userRepo repositories.UserRepository) IUserUseCase {
+	return &UserUseCase{
+		userRepo,
 	}
-	userUpdate.FirstName = newUser.FirstName
-	userUpdate.LastName = newUser.LastName
-	users[userIdx] = userUpdate
-	return &userUpdate
 }
 
-func (uc *UserUseCase) Delete(id string) {
-	var newUsers = make([]models.User, 0)
-	for _, usr := range users {
-		if usr.Id == id {
-			continue
-		}
-		newUsers = append(newUsers, usr)
-	}
-	users = newUsers
+func (uc *UserUseCase) Register(newUser *models.User) error {
+	return uc.userRepo.Create(newUser)
+}
+
+func (uc *UserUseCase) GetUserInfo(id string) *models.User {
+	return uc.userRepo.FindOneById(id)
+}
+
+func (uc *UserUseCase) UpdateInfo(id string, newUser *models.User) error {
+	return uc.userRepo.Update(id, newUser)
+}
+
+func (uc *UserUseCase) Unregister(id string) error {
+	return uc.userRepo.Delete(id)
 }

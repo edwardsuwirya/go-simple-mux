@@ -3,9 +3,9 @@ package deliveries
 import (
 	"fmt"
 	"github.com/gorilla/mux"
-	"gosimplemux/appHttpParser"
-	"gosimplemux/appHttpResponse"
-	"gosimplemux/appStatus"
+	"gosimplemux/appUtils/appHttpParser"
+	"gosimplemux/appUtils/appHttpResponse"
+	"gosimplemux/appUtils/appStatus"
 	"gosimplemux/models"
 	"gosimplemux/useCases"
 	"net/http"
@@ -32,16 +32,26 @@ func (d *UserDelivery) InitRoute(mdw ...mux.MiddlewareFunc) {
 	userRouter := d.router.PathPrefix(userMainRoute).Subrouter()
 	userRouter.Use(mdw...)
 
-	userRouter.HandleFunc("", d.userRoute).Methods("GET")
 	userRouter.HandleFunc("", d.userPostRoute).Methods("POST")
 	userRouter.HandleFunc("", d.userPutRoute).Methods("PUT")
 	userRouter.HandleFunc("", d.userDeleteRoute).Methods("DELETE")
-	userRouter.HandleFunc("/{id}", d.userRoute).Methods("GET")
+	userRouter.HandleFunc("", d.userRoute).Methods("GET")
 }
 
 func (d *UserDelivery) userRoute(w http.ResponseWriter, r *http.Request) {
-	users := d.service.GetAll()
-	d.responder.Data(w, appStatus.Success, appStatus.StatusText(appStatus.Success), users)
+	userId, isExist := r.URL.Query()["id"]
+	if isExist {
+		users := d.service.GetUserInfo(userId[0])
+		if users != nil {
+			d.responder.Data(w, appStatus.Success, appStatus.StatusText(appStatus.Success), users)
+		} else {
+			d.responder.Data(w, appStatus.Success, appStatus.StatusText(appStatus.Success), "no record found")
+		}
+
+	} else {
+		d.responder.Error(w, appStatus.ErrorLackInfo, "Please provide some IDs")
+	}
+
 }
 
 func (d *UserDelivery) userPostRoute(w http.ResponseWriter, r *http.Request) {
@@ -50,7 +60,9 @@ func (d *UserDelivery) userPostRoute(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	d.service.Create(&newUser)
+	if err := d.service.Register(&newUser); err != nil {
+		d.responder.Error(w, appStatus.UnknownError, err.Error())
+	}
 	d.responder.Data(w, appStatus.Success, appStatus.StatusText(appStatus.Success), newUser)
 }
 
@@ -62,7 +74,7 @@ func (d *UserDelivery) userPutRoute(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		userUpdate := d.service.Update(userId[0], &usrReq)
+		userUpdate := d.service.UpdateInfo(userId[0], &usrReq)
 		d.responder.Data(w, appStatus.Success, appStatus.StatusText(appStatus.Success), userUpdate)
 	} else {
 		msg := appStatus.StatusText(appStatus.ErrorLackInfo)
@@ -73,7 +85,9 @@ func (d *UserDelivery) userPutRoute(w http.ResponseWriter, r *http.Request) {
 func (d *UserDelivery) userDeleteRoute(w http.ResponseWriter, r *http.Request) {
 	userId, isExist := r.URL.Query()["id"]
 	if isExist {
-		d.service.Delete(userId[0])
+		if err := d.service.Unregister(userId[0]); err != nil {
+			d.responder.Error(w, appStatus.ErrorLackInfo, err.Error())
+		}
 		d.responder.Data(w, appStatus.Success, appStatus.StatusText(appStatus.Success), nil)
 	} else {
 		msg := appStatus.StatusText(appStatus.ErrorLackInfo)
