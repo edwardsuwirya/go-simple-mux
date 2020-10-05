@@ -6,6 +6,7 @@ const (
 	UnknownError            = 6
 	ErrorNotMatchValidation = 1
 	ErrorLackInfo           = 2
+	ErrorUnauthorized       = 4
 )
 
 var statusMessage = map[int]string{
@@ -14,6 +15,7 @@ var statusMessage = map[int]string{
 	UnknownError:            "Unknown error, please contact IT",
 	ErrorNotMatchValidation: "Unsatisfied validation",
 	ErrorLackInfo:           "Please fill required %s",
+	ErrorUnauthorized:       "User unauthorized",
 }
 
 func StatusText(code int) string {

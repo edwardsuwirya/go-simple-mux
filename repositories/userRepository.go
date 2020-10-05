@@ -23,7 +23,7 @@ type UserRepository interface {
 type userRepository struct {
 }
 
-func (u userRepository) FindOneById(id string) *models.User {
+func (u *userRepository) FindOneById(id string) *models.User {
 	var userUpdate models.User
 	isFound := false
 	for _, usr := range users {
@@ -40,14 +40,14 @@ func (u userRepository) FindOneById(id string) *models.User {
 	}
 }
 
-func (u userRepository) Create(newUser *models.User) error {
+func (u *userRepository) Create(newUser *models.User) error {
 	id := guuid.New()
 	newUser.Id = id.String()
 	users = append(users, *newUser)
 	return nil
 }
 
-func (u userRepository) Update(id string, newUser *models.User) error {
+func (u *userRepository) Update(id string, newUser *models.User) error {
 	var userUpdate models.User
 	var userIdx int
 	for idx, usr := range users {
@@ -63,7 +63,7 @@ func (u userRepository) Update(id string, newUser *models.User) error {
 	return nil
 }
 
-func (u userRepository) Delete(id string) error {
+func (u *userRepository) Delete(id string) error {
 	var newUsers = make([]models.User, 0)
 	for _, usr := range users {
 		if usr.Id == id {

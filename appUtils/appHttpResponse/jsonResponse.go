@@ -7,11 +7,12 @@ import (
 
 type jsonResponder struct{}
 
-func (j *jsonResponder) Write(w http.ResponseWriter, data interface{}) {
+func (j *jsonResponder) Write(w http.ResponseWriter, statusCode int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	if data == nil {
 		return
 	}
+	w.WriteHeader(statusCode)
 	content, err := json.Marshal(data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -27,7 +28,7 @@ func (j *jsonResponder) Data(w http.ResponseWriter, status int, message string, 
 		Message: message,
 		Data:    data,
 	}
-	j.Write(w, content)
+	j.Write(w, http.StatusOK, content)
 }
 
 func (j *jsonResponder) Error(w http.ResponseWriter, status int, error string) {
@@ -35,7 +36,7 @@ func (j *jsonResponder) Error(w http.ResponseWriter, status int, error string) {
 		ErrorID: status,
 		Message: error,
 	}
-	j.Write(w, content)
+	j.Write(w, http.StatusOK, content)
 }
 
 func NewJSONResponder() IResponder {

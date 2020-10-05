@@ -57,7 +57,7 @@ func (d *UserDelivery) userRoute(w http.ResponseWriter, r *http.Request) {
 func (d *UserDelivery) userPostRoute(w http.ResponseWriter, r *http.Request) {
 	var newUser models.User
 	if err := d.parser.Parse(r, &newUser); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, "", http.StatusBadRequest)
 		return
 	}
 	if err := d.service.Register(&newUser); err != nil {
@@ -71,7 +71,7 @@ func (d *UserDelivery) userPutRoute(w http.ResponseWriter, r *http.Request) {
 	if isExist {
 		var usrReq models.User
 		if err := d.parser.Parse(r, &usrReq); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Error(w, "", http.StatusBadRequest)
 			return
 		}
 		userUpdate := d.service.UpdateInfo(userId[0], &usrReq)

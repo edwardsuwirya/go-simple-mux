@@ -30,7 +30,7 @@ func (ar *appRouter) InitMainRouter() {
 	var serviceManager = manager.NewServiceManger()
 	appRoutes := []appRoutes{
 		{
-			del: deliveries.NewAuthDelivery(ar.app.router, ar.cookieStore),
+			del: deliveries.NewAuthDelivery(ar.app.router, ar.cookieStore, ar.parser, ar.responder, serviceManager.UserAuthUseCase()),
 			mdw: nil,
 		},
 		{

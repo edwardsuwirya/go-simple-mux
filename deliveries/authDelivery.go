@@ -3,7 +3,11 @@ package deliveries
 import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
-	"log"
+	"gosimplemux/appUtils/appHttpParser"
+	"gosimplemux/appUtils/appHttpResponse"
+	"gosimplemux/appUtils/appStatus"
+	"gosimplemux/models"
+	"gosimplemux/useCases"
 	"net/http"
 )
 
@@ -15,10 +19,13 @@ const (
 type AuthDelivery struct {
 	router      *mux.Router
 	cookieStore *sessions.CookieStore
+	parser      *appHttpParser.JsonParser
+	responder   appHttpResponse.IResponder
+	service     useCases.IUserAuthUseCase
 }
 
-func NewAuthDelivery(r *mux.Router, c *sessions.CookieStore) *AuthDelivery {
-	return &AuthDelivery{r, c}
+func NewAuthDelivery(router *mux.Router, cookie *sessions.CookieStore, parser *appHttpParser.JsonParser, responder appHttpResponse.IResponder, service useCases.IUserAuthUseCase) *AuthDelivery {
+	return &AuthDelivery{router, cookie, parser, responder, service}
 }
 
 func (d *AuthDelivery) InitRoute(mdw ...mux.MiddlewareFunc) {
@@ -28,11 +35,21 @@ func (d *AuthDelivery) InitRoute(mdw ...mux.MiddlewareFunc) {
 
 func (d *AuthDelivery) authRoute(w http.ResponseWriter, r *http.Request) {
 	session, _ := d.cookieStore.Get(r, "app-cookie")
-	//Ada mekanisme cek user name & password
+	var userAuth models.UserAuth
+	if err := d.parser.Parse(r, &userAuth); err != nil {
+		http.Error(w, "", http.StatusBadRequest)
+		return
+	}
+	userInfo := d.service.UserNamePasswordValidation(userAuth.UserName, userAuth.UserPassword)
+	if userInfo == nil {
+		http.Error(w, "", http.StatusUnauthorized)
+		return
+	}
 	session.Values["authenticated"] = true
 	err := session.Save(r, w)
+	d.responder.Data(w, appStatus.Success, appStatus.StatusText(appStatus.Success), userInfo)
 	if err != nil {
-		log.Fatalln(err)
+		http.Error(w, "", http.StatusInternalServerError)
 	}
 }
 func (d *AuthDelivery) authLogoutRoute(w http.ResponseWriter, r *http.Request) {
@@ -41,6 +58,7 @@ func (d *AuthDelivery) authLogoutRoute(w http.ResponseWriter, r *http.Request) {
 	session.Options.MaxAge = -1
 	err := session.Save(r, w)
 	if err != nil {
-		log.Fatalln(err)
+		http.Error(w, "", http.StatusInternalServerError)
 	}
+	d.responder.Data(w, appStatus.Success, appStatus.StatusText(appStatus.Success), "Logout")
 }
