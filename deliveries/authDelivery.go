@@ -50,6 +50,7 @@ func (d *AuthDelivery) authRoute(w http.ResponseWriter, r *http.Request) {
 	d.responder.Data(w, appStatus.Success, appStatus.StatusText(appStatus.Success), userInfo)
 	if err != nil {
 		http.Error(w, "", http.StatusInternalServerError)
+		return
 	}
 }
 func (d *AuthDelivery) authLogoutRoute(w http.ResponseWriter, r *http.Request) {
@@ -59,6 +60,7 @@ func (d *AuthDelivery) authLogoutRoute(w http.ResponseWriter, r *http.Request) {
 	err := session.Save(r, w)
 	if err != nil {
 		http.Error(w, "", http.StatusInternalServerError)
+		return
 	}
 	d.responder.Data(w, appStatus.Success, appStatus.StatusText(appStatus.Success), "Logout")
 }
