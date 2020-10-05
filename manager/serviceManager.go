@@ -1,6 +1,9 @@
 package manager
 
-import "gosimplemux/useCases"
+import (
+	"gosimplemux/infra"
+	"gosimplemux/useCases"
+)
 
 type ServiceManager interface {
 	UserUseCase() useCases.IUserUseCase
@@ -18,6 +21,6 @@ func (sm *serviceManager) UserUseCase() useCases.IUserUseCase {
 func (sm *serviceManager) UserAuthUseCase() useCases.IUserAuthUseCase {
 	return useCases.NewUserAuthUseCase(sm.repo.UserAuthRepo(), sm.repo.UserRepo())
 }
-func NewServiceManger() ServiceManager {
-	return &serviceManager{repo: NewRepoManager()}
+func NewServiceManger(infra infra.Infra) ServiceManager {
+	return &serviceManager{repo: NewRepoManager(infra)}
 }

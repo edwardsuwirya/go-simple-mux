@@ -8,6 +8,7 @@ import (
 	"gosimplemux/appUtils/appHttpParser"
 	"gosimplemux/appUtils/appHttpResponse"
 	"gosimplemux/deliveries"
+	"gosimplemux/infra"
 	"gosimplemux/manager"
 )
 
@@ -18,6 +19,7 @@ type appRouter struct {
 	tokenValidationMiddleware *appMiddleware.TokenValidationMiddleware
 	parser                    *appHttpParser.JsonParser
 	responder                 appHttpResponse.IResponder
+	infra                     infra.Infra
 }
 
 type appRoutes struct {
@@ -27,7 +29,7 @@ type appRoutes struct {
 
 func (ar *appRouter) InitMainRouter() {
 	ar.app.router.Use(ar.logRequestMiddleware.Log)
-	var serviceManager = manager.NewServiceManger()
+	var serviceManager = manager.NewServiceManger(ar.infra)
 	appRoutes := []appRoutes{
 		{
 			del: deliveries.NewAuthDelivery(ar.app.router, ar.cookieStore, ar.parser, ar.responder, serviceManager.UserAuthUseCase()),
@@ -54,5 +56,6 @@ func NewAppRouter(app *goSimpleMuxApp) *appRouter {
 		appMiddleware.NewTokenValidationMiddleware(cookieStore),
 		appHttpParser.NewJsonParser(),
 		appHttpResponse.NewJSONResponder(),
+		app.infra,
 	}
 }

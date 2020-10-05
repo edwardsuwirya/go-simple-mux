@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"database/sql"
 	guuid "github.com/google/uuid"
 	"gosimplemux/models"
 )
@@ -21,6 +22,7 @@ type UserRepository interface {
 }
 
 type userRepository struct {
+	db *sql.DB
 }
 
 func (u *userRepository) FindOneById(id string) *models.User {
@@ -75,6 +77,6 @@ func (u *userRepository) Delete(id string) error {
 	return nil
 }
 
-func NewUserRepository() UserRepository {
-	return &userRepository{}
+func NewUserRepository(db *sql.DB) UserRepository {
+	return &userRepository{db}
 }

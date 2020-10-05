@@ -1,18 +1,18 @@
 package repositories
 
 import (
+	"database/sql"
 	guuid "github.com/google/uuid"
 	"gosimplemux/models"
 )
 
-var userAuth = []models.UserAuth{
-	{
-		Id:           "f78a0730-5e27-4faf-8ccc-21edd53306dd",
-		UserRegId:    "c01d7cf6-ec3f-47f0-9556-a5d6e9009a43",
-		UserName:     "ediboy93",
-		UserPassword: "12345",
-	},
-}
+var (
+	authQueries = map[string]string{
+		"insertUserAuth":               "INSERT into user_auth(id,user_registration_id,user_name,user_password) values(?,?,?,?)",
+		"updateUserPassword":           "UPDATE user_auth SET user_password=? WHERE id=?",
+		"findOneByUserNameAndPassword": "SELECT id,user_registration_id FROM user_auth WHERE user_name=? AND user_password=?",
+	}
+)
 
 type UserAuthRepository interface {
 	FindOneByUserNameAndPassword(userName string, password string) *models.UserAuth
@@ -21,47 +21,50 @@ type UserAuthRepository interface {
 }
 
 type userAuthRepository struct {
+	db *sql.DB
+	ps map[string]*sql.Stmt
 }
 
 func (u *userAuthRepository) FindOneByUserNameAndPassword(userName string, password string) *models.UserAuth {
-	var userUpdate models.UserAuth
-	isFound := false
-	for _, usr := range userAuth {
-		if usr.UserName == userName && usr.UserPassword == password {
-			userUpdate = usr
-			isFound = true
-			break
-		}
-	}
-	if isFound {
-		return &userUpdate
-	} else {
+	row := u.ps["findOneByUserNameAndPassword"].QueryRow(userName, password)
+	res := new(models.UserAuth)
+	err := row.Scan(&res.Id, &res.UserRegId)
+	if err != nil {
 		return nil
 	}
+	return res
 }
 
 func (u *userAuthRepository) Create(newUser *models.UserAuth) error {
 	id := guuid.New()
 	newUser.Id = id.String()
-	userAuth = append(userAuth, *newUser)
+	_, err := u.ps["insertUserAuth"].Exec(newUser.Id, newUser.UserRegId, newUser.UserName, newUser.UserPassword)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func (u *userAuthRepository) UpdatePassword(id string, newPassword string) error {
-	var userUpdate models.UserAuth
-	var userIdx int
-	for idx, usr := range userAuth {
-		if usr.Id == id {
-			userUpdate = usr
-			userIdx = idx
-			break
-		}
+	_, err := u.ps["updateUserPassword"].Exec(newPassword, id)
+	if err != nil {
+		return err
 	}
-	userUpdate.UserPassword = newPassword
-	userAuth[userIdx] = userUpdate
 	return nil
 }
 
-func NewUserAuthRepository() UserAuthRepository {
-	return &userAuthRepository{}
+func NewUserAuthRepository(db *sql.DB) UserAuthRepository {
+	ps := make(map[string]*sql.Stmt, len(authQueries))
+
+	for n, v := range authQueries {
+		p, err := db.Prepare(v)
+		if err != nil {
+			panic(err)
+		}
+		ps[n] = p
+	}
+
+	return &userAuthRepository{
+		db, ps,
+	}
 }
