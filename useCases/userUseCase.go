@@ -27,7 +27,11 @@ func (uc *UserUseCase) Register(newUser *models.User) error {
 }
 
 func (uc *UserUseCase) GetUserInfo(id string) *models.User {
-	return uc.userRepo.FindOneById(id)
+	user, err := uc.userRepo.FindOneById(id)
+	if err != nil {
+		return nil
+	}
+	return user
 }
 
 func (uc *UserUseCase) UpdateInfo(id string, newUser *models.User) error {

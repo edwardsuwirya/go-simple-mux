@@ -23,7 +23,13 @@ func NewUserAuthUseCase(userAuthRepo repositories.UserAuthRepository, userRepo r
 func (uc *UserAuthUseCase) UserNamePasswordValidation(userName string, password string) *models.User {
 	userAuth := uc.userAuthRepo.FindOneByUserNameAndPassword(userName, password)
 	if userAuth != nil {
-		userInfo := uc.userRepo.FindOneById(userAuth.UserRegId)
+		userInfo, err := uc.userRepo.FindOneById(userAuth.UserRegId)
+		if err != nil {
+			return nil
+		}
+		if userInfo.IsActive == "N" {
+			return nil
+		}
 		return userInfo
 	}
 	return nil
