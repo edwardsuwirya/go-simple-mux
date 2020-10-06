@@ -24,7 +24,7 @@ type AuthDelivery struct {
 	service     useCases.IUserAuthUseCase
 }
 
-func NewAuthDelivery(router *mux.Router, cookie *sessions.CookieStore, parser *appHttpParser.JsonParser, responder appHttpResponse.IResponder, service useCases.IUserAuthUseCase) *AuthDelivery {
+func NewAuthDelivery(router *mux.Router, cookie *sessions.CookieStore, parser *appHttpParser.JsonParser, responder appHttpResponse.IResponder, service useCases.IUserAuthUseCase) IDelivery {
 	return &AuthDelivery{router, cookie, parser, responder, service}
 }
 

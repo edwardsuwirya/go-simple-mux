@@ -22,7 +22,7 @@ type UserDelivery struct {
 	service   useCases.IUserUseCase
 }
 
-func NewUserDelivery(router *mux.Router, parser *appHttpParser.JsonParser, responder appHttpResponse.IResponder, service useCases.IUserUseCase) *UserDelivery {
+func NewUserDelivery(router *mux.Router, parser *appHttpParser.JsonParser, responder appHttpResponse.IResponder, service useCases.IUserUseCase) IDelivery {
 	return &UserDelivery{
 		router, parser, responder, service,
 	}
