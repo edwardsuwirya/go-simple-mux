@@ -4,7 +4,10 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/gomodule/redigo/redis"
 	"github.com/spf13/viper"
+	"log"
+	"os"
 )
 
 var (
@@ -15,6 +18,7 @@ type Infra interface {
 	SqlDb() *sql.DB
 	Config() *viper.Viper
 	ApiServer() string
+	RedisServer() *redis.Pool
 }
 
 type infra struct{}
@@ -54,4 +58,21 @@ func (i *infra) Config() *viper.Viper {
 	viper.ReadInConfig()
 	cfg = viper.GetViper()
 	return cfg
+}
+
+func (i *infra) RedisServer() *redis.Pool {
+	redisHost := i.Config().GetString("REDISHOST")
+	redisPort := i.Config().GetString("REDISPORT")
+	return &redis.Pool{
+		MaxIdle:   5,
+		MaxActive: 10,
+		Dial: func() (redis.Conn, error) {
+			conn, err := redis.Dial("tcp", fmt.Sprintf("%s:%s", redisHost, redisPort))
+			if err != nil {
+				log.Printf("ERROR: fail initializing the redis pool: %s", err.Error())
+				os.Exit(1)
+			}
+			return conn, err
+		},
+	}
 }

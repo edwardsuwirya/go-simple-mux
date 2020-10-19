@@ -2,7 +2,7 @@ package deliveries
 
 import (
 	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
+	"gosimplemux/appHttpSessions"
 	"gosimplemux/appUtils/appHttpParser"
 	"gosimplemux/appUtils/appHttpResponse"
 	"gosimplemux/appUtils/appStatus"
@@ -17,15 +17,15 @@ const (
 )
 
 type AuthDelivery struct {
-	router      *mux.Router
-	cookieStore *sessions.CookieStore
-	parser      *appHttpParser.JsonParser
-	responder   appHttpResponse.IResponder
-	service     useCases.IUserAuthUseCase
+	router     *mux.Router
+	appSession appHttpSessions.AppSession
+	parser     *appHttpParser.JsonParser
+	responder  appHttpResponse.IResponder
+	service    useCases.IUserAuthUseCase
 }
 
-func NewAuthDelivery(router *mux.Router, cookie *sessions.CookieStore, parser *appHttpParser.JsonParser, responder appHttpResponse.IResponder, service useCases.IUserAuthUseCase) IDelivery {
-	return &AuthDelivery{router, cookie, parser, responder, service}
+func NewAuthDelivery(router *mux.Router, appSession appHttpSessions.AppSession, parser *appHttpParser.JsonParser, responder appHttpResponse.IResponder, service useCases.IUserAuthUseCase) IDelivery {
+	return &AuthDelivery{router, appSession, parser, responder, service}
 }
 
 func (d *AuthDelivery) InitRoute(mdw ...mux.MiddlewareFunc) {
@@ -34,7 +34,7 @@ func (d *AuthDelivery) InitRoute(mdw ...mux.MiddlewareFunc) {
 }
 
 func (d *AuthDelivery) authRoute(w http.ResponseWriter, r *http.Request) {
-	session, _ := d.cookieStore.Get(r, "app-cookie")
+
 	var userAuth models.UserAuth
 	if err := d.parser.Parse(r, &userAuth); err != nil {
 		http.Error(w, "", http.StatusBadRequest)
@@ -45,19 +45,15 @@ func (d *AuthDelivery) authRoute(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusUnauthorized)
 		return
 	}
-	session.Values["authenticated"] = true
-	err := session.Save(r, w)
-	d.responder.Data(w, appStatus.Success, appStatus.StatusText(appStatus.Success), userInfo)
+	err := d.appSession.Set(w, r, "authenticated", true, false, "app-cookie")
 	if err != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
 	}
+	d.responder.Data(w, appStatus.Success, appStatus.StatusText(appStatus.Success), userInfo)
 }
 func (d *AuthDelivery) authLogoutRoute(w http.ResponseWriter, r *http.Request) {
-	session, _ := d.cookieStore.Get(r, "app-cookie")
-	session.Values["authenticated"] = false
-	session.Options.MaxAge = -1
-	err := session.Save(r, w)
+	err := d.appSession.Set(w, r, "authenticated", false, true, "app-cookie")
 	if err != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 		return

@@ -2,9 +2,7 @@ package main
 
 import (
 	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
 	"gosimplemux/appMiddleware"
-	"gosimplemux/appUtils/appCookieStore"
 	"gosimplemux/appUtils/appHttpParser"
 	"gosimplemux/appUtils/appHttpResponse"
 	"gosimplemux/deliveries"
@@ -13,13 +11,14 @@ import (
 )
 
 type appRouter struct {
-	app                       *goSimpleMuxApp
-	cookieStore               *sessions.CookieStore
-	logRequestMiddleware      *appMiddleware.LogRequestMiddleware
-	tokenValidationMiddleware *appMiddleware.TokenValidationMiddleware
-	parser                    *appHttpParser.JsonParser
-	responder                 appHttpResponse.IResponder
-	infra                     infra.Infra
+	app                            *goSimpleMuxApp
+	sessionManger                  manager.SessionManager
+	logRequestMiddleware           *appMiddleware.LogRequestMiddleware
+	tokenValidationMiddleware      *appMiddleware.TokenValidationMiddleware
+	tokenRedisValidationMiddleware *appMiddleware.TokenRedisValidationMiddleware
+	parser                         *appHttpParser.JsonParser
+	responder                      appHttpResponse.IResponder
+	infra                          infra.Infra
 }
 
 type appRoutes struct {
@@ -32,13 +31,13 @@ func (ar *appRouter) InitMainRouter() {
 	var serviceManager = manager.NewServiceManger(ar.infra)
 	appRoutes := []appRoutes{
 		{
-			del: deliveries.NewAuthDelivery(ar.app.router, ar.cookieStore, ar.parser, ar.responder, serviceManager.UserAuthUseCase()),
+			del: deliveries.NewAuthDelivery(ar.app.router, ar.sessionManger.CookieRedis(), ar.parser, ar.responder, serviceManager.UserAuthUseCase()),
 			mdw: nil,
 		},
 		{
 			del: deliveries.NewUserDelivery(ar.app.router, ar.parser, ar.responder, serviceManager.UserUseCase()),
 			mdw: []mux.MiddlewareFunc{
-				ar.tokenValidationMiddleware.Validate,
+				ar.tokenRedisValidationMiddleware.Validate,
 			},
 		},
 	}
@@ -48,12 +47,13 @@ func (ar *appRouter) InitMainRouter() {
 }
 
 func NewAppRouter(app *goSimpleMuxApp) *appRouter {
-	var cookieStore = appCookieStore.NewAppCookieStore().Store
+	sessionManager := manager.NewSessionManger(app.infra)
 	return &appRouter{
 		app,
-		cookieStore,
+		sessionManager,
 		appMiddleware.NewLogRequestMiddleware(),
-		appMiddleware.NewTokenValidationMiddleware(cookieStore),
+		appMiddleware.NewTokenValidationMiddleware(sessionManager.CookieInMemory()),
+		appMiddleware.NewTokenRedisValidationMiddleware(sessionManager.CookieRedis()),
 		appHttpParser.NewJsonParser(),
 		appHttpResponse.NewJSONResponder(),
 		app.infra,
