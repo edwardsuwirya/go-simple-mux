@@ -45,7 +45,7 @@ func (d *AuthDelivery) authRoute(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "", http.StatusUnauthorized)
 		return
 	}
-	err := d.appSession.Set(w, r, "authenticated", true, false, "app-cookie")
+	err := d.appSession.Set(w, r, appHttpSessions.AuthCookieKey, true, false, appHttpSessions.CookieName)
 	if err != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 		return
@@ -53,7 +53,7 @@ func (d *AuthDelivery) authRoute(w http.ResponseWriter, r *http.Request) {
 	d.responder.Data(w, appStatus.Success, appStatus.StatusText(appStatus.Success), userInfo)
 }
 func (d *AuthDelivery) authLogoutRoute(w http.ResponseWriter, r *http.Request) {
-	err := d.appSession.Set(w, r, "authenticated", false, true, "app-cookie")
+	err := d.appSession.Set(w, r, appHttpSessions.AuthCookieKey, false, true, appHttpSessions.CookieName)
 	if err != nil {
 		http.Error(w, "", http.StatusInternalServerError)
 		return

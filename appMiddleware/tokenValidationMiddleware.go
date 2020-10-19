@@ -16,8 +16,8 @@ func NewTokenValidationMiddleware(appSession appHttpSessions.AppSession) *TokenV
 
 func (v *TokenValidationMiddleware) Validate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		session := v.appSession.Get(r, "app-cookie").(*sessions.Session)
-		if isAuth, ok := session.Values["authenticated"].(bool); !isAuth || !ok {
+		session := v.appSession.Get(r, appHttpSessions.CookieName).(*sessions.Session)
+		if isAuth, ok := session.Values[appHttpSessions.AuthCookieKey].(bool); !isAuth || !ok {
 			http.Error(w, "", http.StatusUnauthorized)
 			return
 		}

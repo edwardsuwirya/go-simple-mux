@@ -20,7 +20,7 @@ func (rs *redisSession) GetCookie(r *http.Request, name string) string {
 }
 func (rs *redisSession) Get(r *http.Request, args ...string) interface{} {
 	tokenId := rs.GetCookie(r, args[0])
-	resp, _ := rs.pool.Get().Do("HGET", tokenId, "authenticated")
+	resp, _ := rs.pool.Get().Do("HGET", tokenId, args[1])
 	return fmt.Sprintf("%s", resp)
 }
 func (rs *redisSession) Set(w http.ResponseWriter, r *http.Request, key string, val interface{}, forClear bool, args ...string) error {
